@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上投票系統 - 後台管理</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 700px;
+            margin: 30px auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #212529;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+        .card {
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        .card-title {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: #495057;
+            font-size: 18px;
+        }
+        .form-group {
+            display: flex;
+            gap: 10px;
+        }
+        .form-group input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .btn-add {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .btn-add:hover {
+            background-color: #0069d9;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        th {
+            background-color: #e9ecef;
+            color: #495057;
+        }
+        .badge {
+            background-color: #6c757d;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 14px;
+        }
+        .nav-link {
+            display: block;
+            text-align: left;
+            margin-top: 20px;
+            color: #28a745;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+<div id="app" class="container">
+    <h2>🔧 投票系統 - 後台管理面板</h2>
+
+    <div class="card">
+        <h3 class="card-title">➕ 新增投票項目</h3>
+        <div class="form-group">
+            <input type="text" v-model="newItemName" placeholder="請輸入新投票項目名稱（例如：鍵盤）" @keyup.enter="handleAddItem" />
+            <button @click="handleAddItem" class="btn-add">確認新增</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3 class="card-title">📋 目前項目與票數實時監控</h3>
+        <table>
+            <thead>
+            <tr>
+                <th style="width: 20%;">項目編號</th>
+                <th style="width: 55%;">投票項目名稱</th>
+                <th style="width: 25%;">累計票數</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr v-for="item in voteItems" :key="item.itemId">
+                <td># {{ item.itemId }}</td>
+                <td><strong>{{ item.itemName }}</strong></td>
+                <td><span class="badge">{{ item.voteCount }} 票</span></td>
+            </tr>
+            <tr v-if="voteItems.length === 0">
+                <td colspan="3" style="text-align: center; color: #999;">目前無任何投票項目。</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <a href="/vote/" class="nav-link">⬅️ 返回使用者投票首頁</a>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const voteItems = ref([]);
+            const newItemName = ref('');
+
+            // 1. 撈取目前所有項目與票數
+            const fetchItems = async () => {
+                try {
+                    // 配合 server.servlet.context-path: /vote
+                    const response = await axios.get('/vote/api/votes');
+                    voteItems.value = response.data;
+                } catch (error) {
+                    console.error('後台撈取資料失敗', error);
+                    alert('無法取得即時資料，請確認後端服務是否正常。');
+                }
+            };
+
+            // 2. 處理新增投票項目行為
+            const handleAddItem = async () => {
+                if (!newItemName.value.trim()) {
+                    alert('請輸入項目名稱！');
+                    return;
+                }
+
+                try {
+                    // 打向 VoteRestController 的 /item 接口
+                    const response = await axios.post('/vote/api/votes/item', {
+                        itemName: newItemName.value.trim()
+                    });
+
+                    alert(response.data.message || '項目新增成功！');
+                    newItemName.value = ''; // 清空輸入框
+
+                    // 新增成功後自動刷新列表，達成即時監控
+                    fetchItems();
+                } catch (error) {
+                    const errorMsg = error.response?.data?.error || '後台新增失敗';
+                    alert('錯誤提示：' + errorMsg);
+                }
+            };
+
+            // 元件掛載時立即執行撈取
+            onMounted(fetchItems);
+
+            return {
+                voteItems,
+                newItemName,
+                handleAddItem
+            };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

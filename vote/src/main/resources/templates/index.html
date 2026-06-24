@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>線上投票系統</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+</head>
+<body>
+<div id="app" style="padding: 20px; max-width: 600px; margin: 0 auto;">
+    <h2>📊 線上投票系統</h2>
+
+    <div style="margin-bottom: 20px;">
+        <label><b>您的姓名：</b></label>
+        <input v-model="voterName" type="text" placeholder="請輸入姓名" />
+    </div>
+
+    <table border="1" cellpadding="10" cellspacing="0" style="width: 100%; text-align: left;">
+        <thead>
+        <tr style="background-color: #f2f2f2;">
+            <th>選擇</th>
+            <th>投票項目名稱</th>
+            <th>目前累計票數</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr v-for="item in voteItems" :key="item.itemId">
+            <td><input type="checkbox" :value="item.itemId" v-model="selectedItemIds" /></td>
+            <td>{{ item.itemName }}</td>
+            <td>{{ item.voteCount }} 票</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <button @click="handleVote" style="margin-top: 20px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer;">
+        確認送出投票 (可多選)
+    </button>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const voteItems = ref([]);
+            const voterName = ref('');
+            const selectedItemIds = ref([]);
+
+            // 撈取資料，請注意這裡的 URL 要加上 context-path "/vote"
+            const fetchItems = async () => {
+                try {
+                    const response = await axios.get('/vote/api/votes');
+                    voteItems.value = response.data;
+                } catch (error) {
+                    alert('無法取得資料');
+                }
+            };
+
+            const handleVote = async () => {
+                if (!voterName.value.trim() || selectedItemIds.value.length === 0) {
+                    alert('請填寫姓名並至少勾選一項');
+                    return;
+                }
+                try {
+                    const response = await axios.post('/vote/api/votes/cast', {
+                        voterName: voterName.value,
+                        itemIds: selectedItemIds.value
+                    });
+                    alert(response.data.message);
+                    selectedItemIds.value = [];
+                    fetchItems();
+                } catch (error) {
+                    alert('投票失敗：' + (error.response?.data?.error || error.message));
+                }
+            };
+
+            onMounted(fetchItems);
+
+            return { voteItems, voterName, selectedItemIds, handleVote };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>
