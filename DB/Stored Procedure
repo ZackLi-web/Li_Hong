@@ -1,0 +1,52 @@
+USE voting_system;
+DELIMITER //
+
+CREATE PROCEDURE sp_get_vote_items_with_count()
+BEGIN
+    SELECT 
+        vi.item_id AS itemId,
+        vi.item_name AS itemName,
+        COUNT(vr.record_id) AS voteCount
+    FROM 
+        vote_item vi
+    LEFT JOIN 
+        vote_record vr ON vi.item_id = vr.item_id
+    GROUP BY 
+        vi.item_id, vi.item_name;
+END //
+
+DELIMITER ;
+
+
+
+USE voting_system; 
+
+DELIMITER //
+
+CREATE PROCEDURE sp_cast_vote(
+    IN p_voter_name VARCHAR(50),
+    IN p_item_id INT
+)
+BEGIN
+    
+    INSERT INTO vote_record (voter_name, item_id)
+    VALUES (p_voter_name, p_item_id);
+END //
+
+DELIMITER ;
+
+
+
+USE voting_system; 
+
+DELIMITER //
+
+CREATE PROCEDURE sp_add_vote_item(
+    IN p_item_name VARCHAR(255)
+)
+BEGIN
+    INSERT INTO vote_item (item_name)
+    VALUES (p_item_name);
+END //
+
+DELIMITER ;
