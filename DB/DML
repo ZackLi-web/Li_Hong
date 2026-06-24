@@ -1,0 +1,15 @@
+use voting_system;
+insert into vote_item (item_name)
+values
+('電腦'),
+('滑鼠');
+
+
+use voting_system;
+insert into vote_record ( voter_name ,item_id)
+values
+('Leo',1),
+('Sandy',1),
+('Sandy',2),
+('Randy',2),
+('RSY',2);
